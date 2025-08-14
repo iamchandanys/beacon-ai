@@ -198,10 +198,29 @@ const ChatbotPage: React.FC = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // Auto-scroll to latest message
+  // Auto-scroll to latest message (window-level). We run twice to account for animations/layout.
   const endRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const doScroll = () => {
+      // Anchor-based scroll (preferred)
+      endRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "nearest",
+      });
+      // Fallback: scroll window to the very bottom
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: "smooth",
+          });
+        });
+      }
+    };
+    doScroll();
+    const id = setTimeout(doScroll, 150); // give framer-motion time to finish
+    return () => clearTimeout(id);
   }, [messages.length, isTyping]);
 
   const pageTitle = useMemo(() => "Chat", []);
@@ -285,7 +304,7 @@ const ChatbotPage: React.FC = () => {
               {/* Messages area */}
               <div className="mx-auto max-w-3xl px-4 pb-40 pt-6">
                 <div
-                  className="h-[calc(100vh-220px)] md:h-[calc(100vh-240px)] overflow-y-auto pr-1 space-y-3"
+                  className="min-h-[calc(100vh-240px)] pr-1 space-y-3"
                   role="log"
                   aria-live="polite"
                   aria-relevant="additions"
