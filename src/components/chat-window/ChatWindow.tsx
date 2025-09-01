@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiPlus, FiSend } from "react-icons/fi";
 import { sendChatMessage, removeCookie } from "../../api/chat-api";
-import parse from "html-react-parser";
-import DOMPurify from "dompurify";
+import ReactMarkdown from "react-markdown";
 
 // ------------------------------------------------------------
 // ChatbotPage (Next.js 13+ App Router)
@@ -76,9 +75,7 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
 const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
   const isUser = message.role === "user";
 
-  const content = isUser
-    ? message.content
-    : parse(DOMPurify.sanitize(message.content));
+  const content = message.content;
 
   return (
     <motion.div
@@ -94,7 +91,10 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
             : "bg-white/80 dark:bg-neutral-900/70 text-neutral-900 dark:text-neutral-100 border-neutral-200/60 dark:border-neutral-800"
         }`}
       >
-        <p className="whitespace-pre-wrap">{content}</p>
+        <p className="whitespace-pre-wrap">
+          {" "}
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </p>
         <div
           className={`mt-2 text-[10px] ${
             isUser ? "text-white/70" : "text-neutral-500"
@@ -283,14 +283,7 @@ const ChatbotPage: React.FC = () => {
   const handleNewChat = () => {
     // Clear chat_id for new conversation
     removeCookie("chat_id");
-    setMessages([
-      {
-        id: uid(),
-        role: "assistant",
-        timestamp: Date.now(),
-        content: "New conversation started. How can I help?",
-      },
-    ]);
+    setMessages([]);
     setInput("");
     setIsTyping(false);
   };
