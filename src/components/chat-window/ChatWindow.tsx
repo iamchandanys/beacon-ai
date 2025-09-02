@@ -22,55 +22,6 @@ export interface Message {
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const formatTime = (ms: number) => new Date(ms).toLocaleTimeString();
 
-const DUMMY_REPLIES = [
-  "I'm a demo bot for now — but I'm listening!",
-  "Thanks! I simulated a response. Hook me to an API later.",
-  "On it. (Well, pretending to be.)",
-  "Got it. You can wire a backend when you're ready.",
-  "Neat! Try sending more messages or start a new chat.",
-];
-
-const getDummyReply = (userText: string) => {
-  const canned =
-    DUMMY_REPLIES[Math.floor(Math.random() * DUMMY_REPLIES.length)];
-  const prefix = userText.trim() ? `You said: "${userText.trim()}"` : "";
-  // Join with two newlines so the echo and canned reply are split into paragraphs
-  return [prefix, canned].filter(Boolean).join("\n\n");
-};
-
-// -------- Development Self-Tests (lightweight checks, no prod impact) --------
-function runDevSelfTests() {
-  try {
-    const out1 = getDummyReply("Hello World");
-    console.assert(
-      out1.includes('You said: "Hello World"'),
-      "Expected prefix with user text"
-    );
-    console.assert(
-      out1.includes("\n\n"),
-      "Expected two newlines between sections"
-    );
-
-    const out2 = getDummyReply("");
-    console.assert(
-      !out2.startsWith("You said:"),
-      "No prefix expected for empty input"
-    );
-
-    console.assert(uid() !== uid(), "uid() should produce different values");
-    // If all assertions pass, optionally log once
-    // eslint-disable-next-line no-console
-    console.debug("[Chatbot UI] Dev self-tests passed");
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error("[Chatbot UI] Dev self-tests failed:", e);
-  }
-}
-if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-  // Defer to avoid interfering with hydration
-  setTimeout(runDevSelfTests, 0);
-}
-
 // Message bubble
 const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
   const isUser = message.role === "user";
@@ -92,8 +43,9 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
         }`}
       >
         <p className="whitespace-pre-wrap">
-          {" "}
-          <ReactMarkdown>{content}</ReactMarkdown>
+          <ReactMarkdown className="whitespace-pre-wrap">
+            {content}
+          </ReactMarkdown>
         </p>
         <div
           className={`mt-2 text-[10px] ${
