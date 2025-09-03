@@ -43,7 +43,7 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
         }`}
       >
         <p className="whitespace-pre-wrap">
-          <ReactMarkdown className="whitespace-pre-wrap">
+          <ReactMarkdown>
             {content}
           </ReactMarkdown>
         </p>
