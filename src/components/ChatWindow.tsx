@@ -35,11 +35,11 @@ const MessageBubble: React.FC<{ message: Message; index: number }> = ({
       initial={{ opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      className={`flex justify-start relative`}
+      className={`flex justify-start relative flex-col`}
     >
       <div
-        className={`max-w-[85%] md:max-w-[70%] px-4 text-sm leading-relaxed backdrop-blur-xl ${
-          isUser ? "border-none shadow-none mt-4" : "my-8"
+        className={`max-w-full text-sm leading-relaxed backdrop-blur-xl ${
+          isUser ? "border-none shadow-none mt-4" : "mb-8"
         }`}
       >
         <p
@@ -52,13 +52,15 @@ const MessageBubble: React.FC<{ message: Message; index: number }> = ({
           <ReactMarkdown>{content}</ReactMarkdown>
         </p>
         {index % 2 === 1 && (
-          <p className={`mt-2 text-[10px] !text-black dark:text-neutral-500 `}>
+          <p
+            className={`mt-2 text-[10px] !text-grey-200 opacity-[0.5] dark:text-neutral-500 `}
+          >
             {formatTime(message.timestamp)}
           </p>
         )}
       </div>
       {index % 2 === 1 && (
-        <div className="w-full mx-6 bg-black opacity-[0.05] !h-[1px] absolute bottom-0 -left-2" />
+        <div className="w-full bg-black opacity-[0.05] !h-[1px]" />
       )}
     </motion.div>
   );
@@ -77,7 +79,7 @@ const TypingIndicator: React.FC = () => (
         />
       ))}
     </div>
-    thinking...
+    Thinking...
   </div>
 );
 
@@ -127,11 +129,11 @@ const ChatbotPage: React.FC = () => {
   }, [messages.length, isTyping]);
 
   useEffect(() => {
-    if(!productId || !clientId){
+    if (!productId || !clientId) {
       alert("Missing product_id or client_id in URL. Please check the link.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[])
+  }, []);
 
   const pageTitle = useMemo(() => "Beacon AI", []);
 
@@ -250,7 +252,7 @@ const ChatbotPage: React.FC = () => {
                   </AnimatePresence>
 
                   {isTyping && (
-                    <div className="flex justify-start ml-2">
+                    <div className="flex justify-start">
                       <div className="rounded-3xl border border-neutral-200/60 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/70 px-3 py-2">
                         <TypingIndicator />
                       </div>

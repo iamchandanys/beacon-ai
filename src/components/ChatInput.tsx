@@ -26,7 +26,7 @@ const ChatInput: React.FC<{
 
   return (
     <div className="w-full">
-      <div className="relative flex items-end gap-2 rounded-2xl h-24 border border-2 border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl px-3 py-2">
+      <div className="relative flex items-end gap-2 rounded-2xl h-24 border-2 border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl px-3 py-2">
         {/* New Chat button in input area */}
         <button
           onClick={onNewChat}
@@ -40,7 +40,7 @@ const ChatInput: React.FC<{
 
         <textarea
           ref={textAreaRef}
-          className="flex-1 resize-none bg-transparent outline-none placeholder:text-neutral-400/80 text-sm leading-relaxed h-full pr-10 !mt-4 pt-4 mb-2"
+          className="flex-1 [&&]::h-auto min-h-[60px] resize-none bg-transparent outline-none placeholder:text-neutral-400/80 text-sm leading-relaxed h-full pr-10 pt-2 mb-2"
           placeholder="Send a message… (Shift+Enter for newline)"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -60,7 +60,7 @@ const ChatInput: React.FC<{
         </button>
       </div>
       <p className="mt-2 text-[11px] text-neutral-500 text-center">
-        AI can make mistakes. Check important info.
+        Beacon AI can make mistakes.
       </p>
     </div>
   );
