@@ -41,7 +41,7 @@ const ChatInput: React.FC<{
         <textarea
           ref={textAreaRef}
           className="flex-1 [&&]::h-auto min-h-[60px] resize-none bg-transparent outline-none placeholder:text-neutral-400/80 text-sm leading-relaxed h-full pr-10 pt-2 mb-2"
-          placeholder="Send a message… (Shift+Enter for newline)"
+          placeholder="Send a message."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
