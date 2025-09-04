@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiPlus, FiSend } from "react-icons/fi";
-import { sendChatMessage, removeCookie } from "../../api/chat-api";
+import { sendChatMessage } from "../api/chat-api";
 import ReactMarkdown from "react-markdown";
+import ChatInput from "./ChatInput";
+import { useSearchParams } from "next/navigation";
 
 // ------------------------------------------------------------
 // ChatbotPage (Next.js 13+ App Router)
@@ -23,38 +24,42 @@ const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const formatTime = (ms: number) => new Date(ms).toLocaleTimeString();
 
 // Message bubble
-const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
+const MessageBubble: React.FC<{ message: Message; index: number }> = ({
+  message,
+  index,
+}) => {
   const isUser = message.role === "user";
-
   const content = message.content;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+      className={`flex justify-start relative`}
     >
       <div
-        className={`max-w-[85%] md:max-w-[70%] rounded-3xl px-4 py-3 shadow-sm text-sm leading-relaxed backdrop-blur-xl border ${
-          isUser
-            ? "bg-gradient-to-tr from-neutral-900 to-neutral-700 text-white border-neutral-800"
-            : "bg-white/80 dark:bg-neutral-900/70 text-neutral-900 dark:text-neutral-100 border-neutral-200/60 dark:border-neutral-800"
+        className={`max-w-[85%] md:max-w-[70%] px-4 text-sm leading-relaxed backdrop-blur-xl ${
+          isUser ? "border-none shadow-none mt-4" : "my-8"
         }`}
       >
-        <p className="whitespace-pre-wrap">
-          <ReactMarkdown>
-            {content}
-          </ReactMarkdown>
-        </p>
-        <div
-          className={`mt-2 text-[10px] ${
-            isUser ? "text-white/70" : "text-neutral-500"
+        <p
+          className={`whitespace-pre-wrap ${
+            isUser
+              ? "font-bold text-2xl "
+              : "text-neutral-900 dark:text-neutral-100"
           }`}
         >
-          {formatTime(message.timestamp)}
-        </div>
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </p>
+        {index % 2 === 1 && (
+          <p className={`mt-2 text-[10px] !text-black dark:text-neutral-500 `}>
+            {formatTime(message.timestamp)}
+          </p>
+        )}
       </div>
+      {index % 2 === 1 && (
+        <div className="w-full mx-6 bg-black opacity-[0.05] !h-[1px] absolute bottom-0 -left-2" />
+      )}
     </motion.div>
   );
 };
@@ -72,89 +77,28 @@ const TypingIndicator: React.FC = () => (
         />
       ))}
     </div>
-    typing…
+    thinking...
   </div>
 );
-
-// Chat input
-const ChatInput: React.FC<{
-  value: string;
-  onChange: (v: string) => void;
-  onSend: () => void;
-  onNewChat: () => void;
-  disabled?: boolean;
-}> = ({ value, onChange, onSend, onNewChat, disabled }) => {
-  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    const el = textAreaRef.current;
-    if (!el) return;
-    el.style.height = "0px";
-    el.style.height = Math.min(el.scrollHeight, 140) + "px"; // cap at ~7 lines
-  }, [value]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      onSend();
-    }
-  };
-
-  return (
-    <div className="w-full">
-      <div className="relative flex items-end gap-2 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl px-3 py-2 shadow-lg">
-        {/* New Chat button in input area */}
-        <button
-          onClick={onNewChat}
-          className="absolute -top-3 left-3 inline-flex items-center gap-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 px-3 py-1 text-xs font-medium shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800"
-          aria-label="Start new chat"
-          title="Start new chat"
-          data-testid="new-chat-btn"
-        >
-          <FiPlus className="text-sm" /> New chat
-        </button>
-
-        <textarea
-          ref={textAreaRef}
-          className="flex-1 resize-none bg-transparent outline-none placeholder:text-neutral-400/80 text-sm leading-relaxed max-h-[140px] pr-10"
-          placeholder="Send a message… (Shift+Enter for newline)"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={1}
-          disabled={disabled}
-          data-testid="chat-input"
-        />
-        <button
-          onClick={onSend}
-          disabled={disabled || !value.trim()}
-          className="shrink-0 rounded-2xl p-2 hover:scale-105 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-sm"
-          aria-label="Send message"
-          data-testid="send-button"
-        >
-          <FiSend className="text-lg" />
-        </button>
-      </div>
-      <p className="mt-2 text-[11px] text-neutral-500 text-center">
-        Press Enter to send • Shift+Enter for a new line
-      </p>
-    </div>
-  );
-};
 
 // Header
 const HeaderBar: React.FC<{ title: string }> = ({ title }) => (
   <div className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-neutral-200/60 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl px-4 py-3">
-    <h1 className="text-sm font-semibold tracking-wide">{title}</h1>
+    <h1 className="text-xl font-semibold tracking-wide">{title}</h1>
   </div>
 );
 
 const ChatbotPage: React.FC = () => {
   // Single conversation state (no left history menu)
   const [messages, setMessages] = useState<Message[]>([]);
-
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [chatId, setChatId] = useState<string | null>(null);
+
+  const params = useSearchParams();
+  const productId = params.get("pid");
+  const userId = params.get("uid");
+  const clientId = params.get("cid");
 
   // Auto-scroll to latest message (window-level). We run twice to account for animations/layout.
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -182,7 +126,14 @@ const ChatbotPage: React.FC = () => {
     return () => clearTimeout(id);
   }, [messages.length, isTyping]);
 
-  const pageTitle = useMemo(() => "Chat", []);
+  useEffect(() => {
+    if(!productId || !clientId){
+      alert("Missing product_id or client_id in URL. Please check the link.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[])
+
+  const pageTitle = useMemo(() => "Beacon AI", []);
 
   const handleSend = async () => {
     const trimmed = input.trim();
@@ -199,7 +150,13 @@ const ChatbotPage: React.FC = () => {
     setIsTyping(true);
 
     try {
-      const response = await sendChatMessage(trimmed);
+      const response = await sendChatMessage({
+        message: trimmed,
+        cid: clientId || "",
+        pid: productId || "",
+        uid: userId || "",
+        chatId: chatId || undefined,
+      });
       if (response && response.response) {
         const reply: Message = {
           id: uid(),
@@ -208,6 +165,9 @@ const ChatbotPage: React.FC = () => {
           timestamp: Date.now(),
         };
         setMessages((prev) => [...prev, reply]);
+        if (response.chatId) {
+          setChatId(response.chatId);
+        }
       } else {
         // Handle error or no message
         const errorMsg: Message = {
@@ -234,7 +194,7 @@ const ChatbotPage: React.FC = () => {
 
   const handleNewChat = () => {
     // Clear chat_id for new conversation
-    removeCookie("chat_id");
+    setChatId(null);
     setMessages([]);
     setInput("");
     setIsTyping(false);
@@ -262,7 +222,7 @@ const ChatbotPage: React.FC = () => {
                     onChange={setInput}
                     onSend={handleSend}
                     onNewChat={handleNewChat}
-                    disabled={isTyping}
+                    disabled={isTyping || !productId || !clientId}
                   />
                 </div>
               </div>
@@ -275,30 +235,28 @@ const ChatbotPage: React.FC = () => {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Messages area */}
               <div className="mx-auto max-w-3xl px-4 pb-40 pt-6">
                 <div
-                  className="min-h-[calc(100vh-240px)] pr-1 space-y-3"
+                  className="min-h-[calc(100vh-240px)] pr-1 space-y-3 isolate"
                   role="log"
                   aria-live="polite"
                   aria-relevant="additions"
                   data-testid="messages-container"
                 >
                   <AnimatePresence initial={false}>
-                    {messages.map((m) => (
-                      <MessageBubble key={m.id} message={m} />
+                    {messages.map((m, index) => (
+                      <MessageBubble key={m.id} message={m} index={index} />
                     ))}
                   </AnimatePresence>
 
                   {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="rounded-3xl border border-neutral-200/60 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/70 px-4 py-3">
+                    <div className="flex justify-start ml-2">
+                      <div className="rounded-3xl border border-neutral-200/60 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/70 px-3 py-2">
                         <TypingIndicator />
                       </div>
                     </div>
                   )}
 
-                  {/* Scroll anchor */}
                   <div ref={endRef} />
                 </div>
               </div>
@@ -311,7 +269,7 @@ const ChatbotPage: React.FC = () => {
                     onChange={setInput}
                     onSend={handleSend}
                     onNewChat={handleNewChat}
-                    disabled={isTyping}
+                    disabled={isTyping || !productId || !clientId}
                   />
                 </div>
               </div>
