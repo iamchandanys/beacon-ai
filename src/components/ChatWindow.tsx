@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { sendChatMessage } from "../api/chat-api";
+import { sendChatMessageStream } from "../api/chat-api";
 import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 import ChatInput from "./ChatInput";
 import { useSearchParams } from "next/navigation";
 
@@ -49,7 +52,12 @@ const MessageBubble: React.FC<{ message: Message; index: number }> = ({
               : "text-neutral-900 dark:text-neutral-100"
           }`}
         >
-          <ReactMarkdown>{content}</ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeSanitize, rehypeHighlight]}
+          >
+            {content}
+          </ReactMarkdown>
         </p>
         {index % 2 === 1 && (
           <p
@@ -86,7 +94,7 @@ const TypingIndicator: React.FC = () => (
 // Header
 const HeaderBar: React.FC<{ title: string }> = ({ title }) => (
   <div className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-neutral-200/60 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl px-4 py-3">
-    <h1 className="text-xl font-semibold tracking-wide">{title}</h1>
+     <h1 className="text-xl font-semibold tracking-wide">{title}</h1>
   </div>
 );
 
@@ -96,6 +104,7 @@ const ChatbotPage: React.FC = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
+  const [abortCtrl, setAbortCtrl] = useState<AbortController | null>(null);
 
   const params = useSearchParams();
   const productId = params.get("pid");
@@ -151,37 +160,81 @@ const ChatbotPage: React.FC = () => {
     setInput("");
     setIsTyping(true);
 
+    const abortController = new AbortController();
+    setAbortCtrl(abortController);
+
     try {
-      const response = await sendChatMessage({
+      let assistantContent = "";
+      await sendChatMessageStream({
         message: trimmed,
         cid: clientId || "",
         pid: productId || "",
         uid: userId || "",
         chatId: chatId || undefined,
+        signal: abortController.signal,
+        onData: (data) => {
+          // Check if data contains chat ID pattern
+          const chatIdMatch = data.match(/^\[CHATID\] - (.+)$/);
+          if (chatIdMatch) {
+            const newChatId = chatIdMatch[1];
+            setChatId(newChatId);
+            return;
+          }
+          if (data.startsWith("[ERROR]")) {
+            const errorMessage = data.replace(/^\[ERROR\]\s*/, "");
+            const errorMsg: Message = {
+              id: uid(),
+              role: "assistant",
+              content: errorMessage || "An error occurred. Please try again later.",
+              timestamp: Date.now(),
+            };
+            setMessages((prev) => [...prev, errorMsg]);
+            setIsTyping(false);
+            setAbortCtrl(null);
+            return;
+          }
+          assistantContent += data;
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && lastMsg.role === "assistant") {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                ...lastMsg,
+                content: assistantContent,
+                timestamp: Date.now(),
+              };
+              return updated;
+            } else {
+              return [
+                ...prev,
+                {
+                  id: uid(),
+                  role: "assistant",
+                  content: assistantContent,
+                  timestamp: Date.now(),
+                },
+              ];
+            }
+          });
+        },
+        onError: (error) => {
+          const errorMsg: Message = {
+            id: uid(),
+            role: "assistant",
+            content:
+              typeof error === "string"
+                ? error
+                : "An error occurred. Please try again later.",
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, errorMsg]);
+        },
+        onComplete: () => {
+          setIsTyping(false);
+          setAbortCtrl(null);
+        },
       });
-      if (response && response.response) {
-        const reply: Message = {
-          id: uid(),
-          role: "assistant",
-          content: response.response,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, reply]);
-        if (response.chatId) {
-          setChatId(response.chatId);
-        }
-      } else {
-        // Handle error or no message
-        const errorMsg: Message = {
-          id: uid(),
-          role: "assistant",
-          content: "Sorry, I couldn't process your message. Please try again.",
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
-      }
     } catch (error) {
-      console.error("Error sending message:", error);
       const errorMsg: Message = {
         id: uid(),
         role: "assistant",
@@ -189,8 +242,8 @@ const ChatbotPage: React.FC = () => {
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, errorMsg]);
-    } finally {
       setIsTyping(false);
+      setAbortCtrl(null);
     }
   };
 
@@ -270,7 +323,9 @@ const ChatbotPage: React.FC = () => {
                     value={input}
                     onChange={setInput}
                     onSend={handleSend}
+                    isTyping={isTyping}
                     onNewChat={handleNewChat}
+                    onStop={() => abortCtrl?.abort()}
                     disabled={isTyping || !productId || !clientId}
                   />
                 </div>
