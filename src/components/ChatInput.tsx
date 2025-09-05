@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { FiPlus, FiSend } from "react-icons/fi";
+import { FiPlus, FiSend, FiStopCircle } from "react-icons/fi";
 
 const ChatInput: React.FC<{
   value: string;
@@ -7,7 +7,9 @@ const ChatInput: React.FC<{
   onSend: () => void;
   onNewChat: () => void;
   disabled?: boolean;
-}> = ({ value, onChange, onSend, onNewChat, disabled }) => {
+  isTyping?: boolean;
+  onStop?: () => void;
+}> = ({ value, onChange, onSend, onNewChat, disabled, isTyping, onStop }) => {
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -49,15 +51,24 @@ const ChatInput: React.FC<{
           disabled={disabled}
           data-testid="chat-input"
         />
-        <button
-          onClick={onSend}
-          disabled={disabled || !value.trim()}
-          className="shrink-0 rounded-xl p-2 hover:scale-105 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-sm"
-          aria-label="Send message"
-          data-testid="send-button"
-        >
-          <FiSend className="text-lg" />
-        </button>
+        {isTyping ? (
+          <button
+            onClick={onStop}
+            className="px-3 py-3 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+          >
+            <FiStopCircle className="text-lg" />
+          </button>
+        ) : (
+          <button
+            onClick={onSend}
+            disabled={disabled || !value.trim()}
+            className="shrink-0 rounded-xl p-2 hover:scale-105 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-sm"
+            aria-label="Send message"
+            data-testid="send-button"
+          >
+            <FiSend className="text-lg" />
+          </button>
+        )}
       </div>
       <p className="mt-2 text-[11px] text-neutral-500 text-center">
         Beacon AI can make mistakes.
