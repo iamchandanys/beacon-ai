@@ -48,7 +48,7 @@ export const sendChatMessageStream = async ({
   uid: string;
   chatId?: string;
   onData: (data: string) => void;
-  onError: (error: any) => void;
+  onError: (error: unknown) => void;
   onComplete: (chatId?: string) => void;
   signal?: AbortSignal;
 }) => {
@@ -109,7 +109,7 @@ export const sendChatMessageStream = async ({
             if (parsed.CHATID) {
               chatIdFromResponse = parsed.CHATID;
             }
-          } catch (e) {
+          } catch {
             // If not JSON, treat as plain text
             onData(data);
           }
